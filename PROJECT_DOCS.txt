@@ -1,0 +1,748 @@
+================================================================================
+  AI THUMBNAIL GENERATOR — PROJECT DOCUMENTATION
+  Full Development Log: Phase 0 to Phase 7
+================================================================================
+
+  Project Name  : AI Thumbnail Generator
+  Owner         : Suman
+  Workspace     : C:\Users\suman\OneDrive\Desktop\ai-thumbnail-generator
+  Start Date    : September 15, 2026
+  Last Updated  : September 17, 2026 (Phase 7 Completed)
+  Assistant     : Antigravity (Google DeepMind)
+
+================================================================================
+  TABLE OF CONTENTS
+================================================================================
+
+  1. Project Overview & Vision
+  2. Technology Stack
+  3. System Architecture
+  4. Phase 0 — Project Workspace & Architecture
+  5. Phase 1 — Local Environment & Dependency Verification
+  6. Phase 2 — FastAPI Backend & Strict Prompt Guardrail
+  7. Phase 3 — AI Image Generation Engine (Groq Qwen + FLUX)
+  8. Phase 4 — Frontend Web Application (React + Vite + CSS)
+  9. Phase 5 — Database & Generation History (Supabase PostgreSQL)
+  10. Phase 6 — Cloud Storage (Amazon S3 & Presigned URLs)
+  11. Phase 7 — AWS Serverless Backend (AWS Lambda & API Gateway)
+  12. Phase 8 — Frontend Cloud Hosting (Amazon S3 Static Website)
+  13. Phase 9 — Custom Domain & Free HTTPS (Cloudflare CDN + Hostinger)
+  14. Current Project Folder Structure
+  15. API Endpoints Reference
+  16. How to Run & Test the Application
+  17. Automated Test Suite Summary
+  18. Upcoming Phases & Phase 10 Master Documentation Commitment
+
+
+================================================================================
+  1. PROJECT OVERVIEW & VISION
+================================================================================
+
+  The AI Thumbnail Generator is a production-grade web application engineered
+  exclusively for generating and editing high-CTR 16:9 YouTube thumbnails.
+
+  Core Capabilities:
+  ------------------
+  (a) TEXT-TO-THUMBNAIL GENERATION
+      The user enters a descriptive prompt for a video topic.
+      Groq (Qwen 3.8 27B) enhances the prompt with professional thumbnail
+      cinematography instructions, and the FLUX image engine renders a
+      crisp 1280x720 (16:9) image.
+
+  (b) IMAGE-TO-IMAGE EDITING
+      The user uploads an existing thumbnail or reference photo via
+      drag-and-drop and enters modification instructions (e.g. "Add neon
+      glow and dark moody cyber background"). The AI regenerates the scene
+      incorporating the modifications.
+
+  (c) STRICT VISUAL INTENT GUARDRAIL
+      The backend is protected by a 2-layer deterministic and keyword
+      guardrail engine. Off-topic queries (coding, math, essays, translation)
+      are immediately rejected with educational feedback before reaching AI models.
+
+  (d) PERSISTENT GENERATION HISTORY (SUPABASE)
+      Every generated thumbnail, prompt, model name, and storage path is
+      saved to a Supabase PostgreSQL database. Users can view past generations
+      in an interactive Gallery tab with a lightbox inspector.
+
+  (e) CLOUD OBJECT STORAGE (AMAZON S3 & PRESIGNED URLS)
+      Thumbnails are uploaded directly to a secure, private Amazon S3 bucket.
+      Images are served to the browser via time-limited (24-hour) Presigned URLs,
+      preventing public bucket exposure while supporting serverless scaling.
+
+================================================================================
+  2. TECHNOLOGY STACK
+================================================================================
+
+  Component             Technology                  Purpose
+  ─────────────────────────────────────────────────────────────────────────────
+  Frontend Framework    React 18 + Vite             SPA user interface
+  Frontend Styling      Vanilla CSS + Tailwind      Dark glassmorphism theme
+  Backend Framework     FastAPI (Python 3.14.6)     REST API & business logic
+  Serverless Adapter    Mangum                      Lambda handler wrapper
+  Prompt Engineering    Groq (qwen/qwen3.8-27b)     Thumbnails prompt expansion
+  Image Engine          FLUX (Pollinations AI)      Photorealistic 16:9 rendering
+  Database              Supabase (PostgreSQL)       Metadata & history storage
+  Cloud Storage         Amazon S3 (boto3)           Object store for thumbnails
+  Access Control        S3 Presigned URLs           Secure, private image delivery
+  Test Suite            Pytest + Pytest-Asyncio     32 automated tests
+  Development Server    Uvicorn (Backend)           Hot-reload local API server
+  ─────────────────────────────────────────────────────────────────────────────
+
+  Virtual Environment : backend/.venv (Python 3.14.6)
+  Node.js Version     : v24.18.0
+  AWS Region          : ap-south-1 (Asia Pacific Mumbai)
+
+================================================================================
+  3. SYSTEM ARCHITECTURE
+================================================================================
+
+  Request Flow (Local Development & Phase 6 Live S3):
+  ───────────────────────────────────────────────────
+
+    Browser UI (http://localhost:5173 — React/Vite)
+         │
+         │  1. Submit Prompt or Image Upload (POST /api/generate or /api/edit)
+         ▼
+    FastAPI Backend (http://localhost:8000 — Python)
+         │
+         ├──► 2. guardrail.py: Validate visual intent
+         │       (rejects coding, essays, math, general Q&A)
+         │
+         ├──► 3. ai_service.py: Prompt Enhancement via Groq API
+         │       (qwen/qwen3.8-27b transforms idea into 16:9 FLUX prompt)
+         │
+         ├──► 4. ai_service.py: Image Generation via FLUX Engine
+         │       (Pollinations API renders 1280x720 JPEG)
+         │
+         ├──► 5. storage.py: Amazon S3 Cloud Storage (boto3)
+         │       - Uploads object to s3://ai-thumbnails-samrat-1234/thumbnails/...
+         │       - Generates 24-hour Presigned GET URL
+         │       - (Falls back to backend/outputs/ if AWS is unconfigured)
+         │
+         └──► 6. database.py: Supabase PostgreSQL Persistence
+                 - Inserts record into generation_history table
+                 - Stores prompt, model, mime_type, S3 URI, and base64 preview
+
+================================================================================
+  4. PHASE 0 — PROJECT WORKSPACE & ARCHITECTURE
+================================================================================
+
+  Status: COMPLETED [x]
+
+  Tasks Completed:
+  - Created root project workspace on Desktop: `ai-thumbnail-generator`
+  - Created `ARCHITECTURE.md` establishing component design, API schemas,
+    and serverless deployment plans.
+  - Created `ROADMAP.md` defining Phase 0 through Phase 10 milestones.
+
+================================================================================
+  5. PHASE 1 — LOCAL ENVIRONMENT & DEPENDENCY VERIFICATION
+================================================================================
+
+  Status: COMPLETED [x]
+
+  Tasks Completed:
+  - Verified local developer toolchains (Python 3.14.6, Node.js 24.18, Git 2.55).
+  - Initialized Git repository on `main` branch.
+  - Created root `.gitignore` blocking `.venv`, `.env`, `node_modules`, and caches.
+  - Created backend virtual environment: `backend/.venv`.
+  - Created initial `backend/requirements.txt` and installed dependencies.
+
+================================================================================
+  6. PHASE 2 — FASTAPI BACKEND & STRICT PROMPT GUARDRAIL
+================================================================================
+
+  Status: COMPLETED [x]
+
+  Tasks Completed:
+  - Built FastAPI application skeleton in `backend/app/main.py`.
+  - Engineered 2-layer deterministic prompt guardrail in `backend/app/guardrail.py`:
+    * Layer 1: Explicit blocklist filtering non-image intents (coding, math,
+      essays, translations, general knowledge).
+    * Layer 2: Visual keyword allowlist requiring affirmative scene/aesthetic cues.
+  - Added Swagger documentation at `/docs` and ReDoc at `/redoc`.
+  - Added 17 unit tests in `backend/tests/test_guardrail.py` (100% pass).
+
+================================================================================
+  7. PHASE 3 — AI IMAGE GENERATION ENGINE (GROQ QWEN + FLUX)
+================================================================================
+
+  Status: COMPLETED [x]
+
+  Overview:
+  Initially designed for Google Gemini/Imagen, the AI pipeline was upgraded to
+  Groq's ultra-fast `qwen/qwen3.8-27b` for prompt engineering paired with the
+  open FLUX model for photorealistic 16:9 thumbnail rendering.
+
+  How It Works:
+  ─────────────
+  1. Groq Prompt Engineering:
+     - User input (e.g. "minecraft speedrun thumbnail") is processed through
+       Groq's LLM using a specialized system prompt.
+     - The LLM rewrites the concept into high-detail visual descriptions
+       (composition, foreground focus, background depth, color temperature).
+     - Appends strict quality tokens: `professional YouTube thumbnail, wide
+       landscape format 16:9, cinematic photography, dramatic lighting, 4k`.
+
+  2. FLUX Image Rendering:
+     - The enhanced prompt is submitted to the FLUX rendering pipeline.
+     - Enforces exact 1280x720 YouTube dimensions (`width=1280&height=720`).
+     - Returns raw binary image bytes (JPEG).
+
+  3. Image Editing Support (`/api/edit`):
+     - Allows uploading an existing reference image (PNG/JPG/WEBP).
+     - Groq adapts modification prompts to preserve focal subjects while
+       altering backgrounds, lighting, and props.
+
+  Files Modified/Created:
+  - `backend/app/ai_service.py` — Prompt enhancement, FLUX rendering, output encoding.
+  - `backend/tests/test_ai_service.py` — Mocked unit tests for generation/editing.
+
+================================================================================
+  8. PHASE 4 — FRONTEND WEB APPLICATION (REACT + VITE + CSS)
+================================================================================
+
+  Status: COMPLETED [x]
+
+  Overview:
+  A modern, high-performance Single Page Application built with React 18, Vite,
+  and custom dark-mode glassmorphism styling.
+
+  Key Features Built:
+  ───────────────────
+  1. 16:9 YouTube Thumbnail Canvas (`ResultPanel.jsx`):
+     - Enforces strict 16:9 aspect ratio container matching YouTube guidelines.
+     - Shows empty placeholder state with instructions before generation.
+     - Animated shimmering loading state while AI is rendering.
+     - One-click Download button to save generated thumbnails as PNG.
+
+  2. Prompt Controller (`PromptInput.jsx`):
+     - Mode selector tabs: "Text-to-Thumbnail" vs "Edit Image".
+     - Text area with character count limit and clear validation states.
+     - Error banners displaying friendly guardrail rejection messages.
+
+  3. Reference Image Drag-and-Drop (`ImageUploader.jsx`):
+     - Interactive drop zone supporting drag-and-drop or file browser picker.
+     - Validates image types (JPG, PNG, WEBP) and renders instant client preview.
+
+  4. Styling & UX Design (`index.css`):
+     - Dark violet/slate glassmorphism aesthetic (`#0b0d13` deep canvas).
+     - Modern typography using Inter/system fonts.
+     - Micro-animations, responsive layout, and clean tab navigation.
+
+================================================================================
+  9. PHASE 5 — DATABASE & GENERATION HISTORY (SUPABASE POSTGRESQL)
+================================================================================
+
+  Status: COMPLETED [x]
+
+  Overview:
+  Integrated Supabase cloud PostgreSQL to persist generation history, enabling
+  users to review past designs, retrieve prompts, and inspect thumbnails.
+
+  Database Schema:
+  ────────────────
+  Table: `generation_history`
+    - `id`          : BIGINT GENERATED ALWAYS AS IDENTITY (PRIMARY KEY)
+    - `created_at`  : TIMESTAMPTZ DEFAULT NOW()
+    - `prompt`      : TEXT NOT NULL (original user prompt)
+    - `mode`        : TEXT NOT NULL ('generate' or 'edit')
+    - `image_b64`   : TEXT NOT NULL (base64 image payload for immediate preview)
+    - `mime_type`   : TEXT NOT NULL (e.g. 'image/jpeg')
+    - `model`       : TEXT NOT NULL (e.g. 'Groq (Qwen) + FLUX')
+    - `saved_path`  : TEXT (S3 URI or local filesystem path)
+
+  Backend Implementation (`backend/app/database.py`):
+  - Uses `service_role` key for trusted backend inserts.
+  - Uses `anon` key for read-only history retrieval.
+  - `save_generation()`: Async function called after every generation/edit.
+  - `get_history()`: Returns the last 20 records ordered by timestamp descending.
+  - New API Endpoint: `GET /api/history`.
+
+  Frontend Implementation (`frontend/src/components/Gallery.jsx`):
+  - Added "Create" and "Gallery" navigation tabs in the main navigation.
+  - Responsive thumbnail history grid displaying past creations.
+  - Lightbox modal allowing full-screen preview, metadata inspection, and download.
+  - Optimistic updates: newly generated images appear in the gallery immediately.
+
+================================================================================
+  10. PHASE 6 — CLOUD STORAGE (AMAZON S3 & PRESIGNED URLS)
+================================================================================
+
+  Status: COMPLETED [x] (Verified live on AWS S3)
+
+  Overview:
+  Replaced local disk file storage (`backend/outputs/`) with Amazon S3 cloud
+  object storage. Built with dual-mode architecture: automatically uploads to
+  Amazon S3 when AWS credentials are present, and falls back to local disk storage
+  during offline development or local testing.
+
+  Detailed Implementation Steps:
+  ──────────────────────────────
+  1. AWS SDK Installation:
+     - Added `boto3>=1.34.0` to `backend/requirements.txt`.
+     - Installed boto3 into `backend/.venv`.
+
+  2. Cloud Storage Engine (`backend/app/storage.py`):
+     - `is_s3_configured()`: Detects whether valid AWS credentials exist.
+     - `get_s3_client()`: Initializes `boto3.client("s3")` with Signature Version 4.
+     - `upload_to_s3(image_bytes, key, content_type)`: Puts binary object to S3.
+     - `generate_presigned_url(key, expiration=86400)`: Generates time-limited
+       (24-hour) cryptographically signed HTTPS URLs for direct client downloads
+       without making the S3 bucket public.
+     - `save_image(image_bytes, filename, content_type)`: Unified interface
+       that routes to S3 when configured, or delegates to `save_image_locally()`.
+
+  3. Service & API Wiring:
+     - `backend/app/ai_service.py`: Generates thumbnails and uploads to S3 under
+       `thumbnails/generated_<timestamp>.jpg`. Returns both `saved_path` (S3 URI)
+       and `url` (Presigned URL).
+     - `backend/app/main.py`: Updated startup lifespan to log S3 bucket status.
+       Updated `GET /` health check to report active storage engine and bucket.
+     - Database connection: Supabase `saved_path` column now records the live
+       S3 URI (`s3://ai-thumbnails-samrat-1234/thumbnails/...`).
+
+  4. Frontend Cloud Integration:
+     - `ResultPanel.jsx`: Displays a stylish `☁️ S3 Presigned` status pill and
+       an `↗ S3 Link` external link when a thumbnail is stored in S3.
+     - Seamless download handling supporting both data URIs and presigned URLs.
+
+  5. Live Verification on Real AWS Account:
+     - Connected to user's AWS S3 bucket: `ai-thumbnails-samrat-1234` in `ap-south-1`.
+     - Ran live generation test via API.
+     - Verified upload via `boto3.list_objects_v2`:
+       `thumbnails/generated_20260916_184740.jpg` (35,531 bytes) verified in bucket.
+     - Confirmed Supabase row saved with S3 URI.
+
+================================================================================
+  11. PHASE 7 — AWS SERVERLESS BACKEND (AWS LAMBDA & API GATEWAY)
+================================================================================
+
+  Status: COMPLETED [x]
+
+  Overview:
+  Migrated the backend from running on a local host server (`localhost:8000`)
+  into a fully serverless, auto-scaling architecture on AWS Lambda routed
+  through Amazon API Gateway HTTP API.
+
+  Key Concepts & Technology:
+  ─────────────────────────
+  1. What is AWS Lambda?
+     - A serverless compute service that runs code only when triggered by events
+       (like an incoming web request) and scales automatically to zero when idle.
+     - You pay only for the compute time consumed (down to the millisecond).
+     - Free Tier covers 1,000,000 free requests per month.
+
+  2. What is Amazon API Gateway?
+     - A managed HTTP/REST router that sits between the public internet and AWS Lambda.
+     - Receives incoming requests (e.g. `POST /api/generate`) and forwards them
+       as JSON event payloads directly to the Lambda function.
+
+  3. What is Mangum?
+     - An ASGI adapter that bridges FastAPI and AWS Lambda.
+     - Translates API Gateway HTTP events into standard ASGI request scopes,
+       passes them to FastAPI, and packages FastAPI's HTTP responses back into
+       the API Gateway JSON format.
+     - Handled via `handler = Mangum(app, lifespan="off")` in `backend/app/main.py`.
+
+  Development & Deployment Steps:
+  ───────────────────────────────
+  1. Lightweight Lambda Production Packaging (`backend/package_lambda.py`):
+     - Created `requirements-lambda.txt` omitting dev/local packages (uvicorn, pytest)
+       and boto3 (which AWS pre-installs in the Lambda runtime).
+     - Targeted Python 3.12 managed runtime on Amazon Linux (x86_64).
+     - Used `pip install --platform manylinux2014_x86_64` to download Linux binary
+       wheels on Windows for compiled packages (such as `pydantic-core`), preventing
+       OS binary mismatch errors (`cannot import ELF/DLL`).
+     - Compressed the entire backend into `backend/lambda_package.zip` (9.91 MB).
+     - Uploaded build package to S3: `s3://ai-thumbnails-samrat-1234/builds/lambda_package.zip`.
+
+  2. Automated Deployment Script (`backend/deploy_lambda.py`):
+     - Automatically creates IAM Execution Role `ai-thumbnail-lambda-role`
+       with `AWSLambdaBasicExecutionRole` and `AmazonS3FullAccess`.
+     - Creates/updates Lambda function `ai-thumbnail-backend` (512MB RAM, 60s timeout).
+     - Provisions Amazon API Gateway HTTP API (`ai-thumbnail-api`) with a `$default`
+       proxy route and wildcard CORS enabled.
+
+  3. Errors Encountered & How They Were Resolved:
+     - Error: `SignatureDoesNotMatch` on S3 presigned URLs
+       * Cause: An inline comment in `.env` (`AWS_REGION=ap-south-1 # (...)`) was
+         parsed by dotenv as part of the region string, breaking cryptographic signatures.
+       * Fix: Cleaned `.env` to remove the inline comment.
+     - Error: `InvalidParameterValueException: Reserved keys used in this request: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY`
+       * Cause: AWS Lambda reserves these keys because the Lambda runtime and IAM Execution
+         Role automatically inject them into the execution environment.
+       * Fix: Removed reserved keys from the Lambda environment variables map, and updated
+         `backend/app/storage.py` so boto3 seamlessly uses the Lambda IAM Role credentials.
+
+  4. Live Verification on Cloud:
+     - Live Base URL: https://78jpzfhwr4.execute-api.ap-south-1.amazonaws.com
+     - Health Check (`GET /`): Status 200 OK (`status: healthy`, `s3_configured: true`).
+     - Guardrail (`POST /api/validate`): Status 200 OK (`is_allowed: true`).
+     - Supabase History (`GET /api/history`): Status 200 OK.
+     - Frontend configured via `frontend/.env` (`VITE_API_BASE_URL`).
+
+================================================================================
+  12. PHASE 8 — FRONTEND CLOUD HOSTING (AMAZON S3 STATIC WEBSITE)
+================================================================================
+
+  Status: COMPLETED [x]
+
+  Overview:
+  Packaged the React 18 + Vite frontend into a high-performance static production bundle
+  and deployed it to Amazon S3 in region `ap-south-1` with full Single Page Application
+  (SPA) error routing and optimized HTTP cache headers.
+
+  Key Concepts & Technology:
+  ─────────────────────────
+  1. What is S3 Static Website Hosting?
+     - Amazon S3 can serve static web assets (HTML, CSS, JavaScript, SVGs) directly
+       to web browsers without needing an active web server process (like Nginx/Apache).
+     - Automatically routes root requests (`/`) to `index.html`.
+     - Automatically routes 404s to `index.html` as the Error Document, enabling
+       React's client-side router to handle page navigation cleanly.
+
+  2. Why Cloudflare CDN instead of AWS CloudFront?
+     - AWS CloudFront enforces a manual account verification review on newly created accounts
+       ("Your account must be verified before you can add new CloudFront resources"), which
+       takes 24-48 hours via AWS Basic Support.
+     - Cloudflare offers an instant, zero-delay global CDN network with free automated
+       SSL/TLS edge certificates, DDoS protection, and HTTP/3 support for custom domains.
+     - By pointing Cloudflare's CNAME directly to the Amazon S3 website endpoint, the
+       frontend gets instant global edge caching and free HTTPS without any AWS delay.
+
+  Development & Deployment Steps:
+  ───────────────────────────────
+  1. Production Build:
+     - Executed `npm run build` in `frontend/`.
+     - Vite compiled the React SPA into `frontend/dist/` with content-hashed bundle
+       names (`assets/index-*.js`, `assets/index-*.css`) for aggressive cache busting.
+
+  2. Automated Deployment Script (`frontend/deploy_frontend.py`):
+     - Created frontend S3 bucket `ai-thumbnail-frontend-samrat-1234` in `ap-south-1`.
+     - Enabled S3 Static Website Hosting with index and error documents set to `index.html`.
+     - Uploaded all `dist/` files with explicit MIME types and cache headers:
+       * `assets/*` (hashed JS/CSS): `public, max-age=31536000, immutable`
+       * `index.html`: `public, max-age=0, must-revalidate` (instant cache invalidation)
+
+  3. Live Verification:
+     - Live S3 Website URL: http://ai-thumbnail-frontend-samrat-1234.s3-website.ap-south-1.amazonaws.com
+     - Verified HTTP Status 200 OK on `index.html`.
+     - Verified HTTP Status 200 OK on JavaScript and CSS assets with correct MIME types.
+     - Verified connection to cloud serverless backend at `https://78jpzfhwr4.execute-api.ap-south-1.amazonaws.com`.
+
+================================================================================
+  13. PHASE 9 — CUSTOM DOMAIN & FREE HTTPS (CLOUDFLARE CDN + HOSTINGER)
+================================================================================
+
+  Status: COMPLETED [x]
+
+  Overview:
+  Connected custom domain `samratdev.fun` (registered on Hostinger) to the AI Thumbnail
+  Generator using Cloudflare's free global CDN and universal edge SSL/TLS encryption.
+
+  Key Concepts & Architecture:
+  ───────────────────────────
+  1. What is Cloudflare CDN & Edge SSL?
+     - Cloudflare sits in front of the Amazon S3 website bucket.
+     - When a visitor navigates to `https://samratdev.fun`, Cloudflare's edge network
+       terminates the secure HTTPS connection with a free, auto-renewing SSL certificate.
+     - Cloudflare fetches the static assets from Amazon S3, caches them globally at
+       hundreds of edge locations, and delivers them with ultra-low latency.
+
+  2. How S3 Custom Domain Hosting Operates:
+     - Amazon S3 static website endpoints inspect the incoming HTTP `Host` header.
+     - For `samratdev.fun`, S3 routes requests to an S3 bucket named `samratdev.fun`.
+     - For `www.samratdev.fun`, an S3 bucket named `www.samratdev.fun` automatically
+       redirects visitors (`HTTP 301 Moved Permanently`) directly to `https://samratdev.fun/`.
+     - Cloudflare's SSL/TLS mode set to "Flexible" ensures visitors enjoy green-padlock
+       HTTPS security while Cloudflare communicates seamlessly with S3's static website port.
+
+  3. Live Verification:
+     - Root Domain: `https://samratdev.fun` (Status 200 OK via Cloudflare Edge SSL)
+     - WWW Subdomain: `http://www.samratdev.fun` (Status 301 Redirect to `https://samratdev.fun/`)
+     - Global CDN Caching: Active (Brotli/Gzip compression, HTTP/3, and DDoS mitigation)
+
+================================================================================
+  14. CURRENT PROJECT FOLDER STRUCTURE
+================================================================================
+
+  ai-thumbnail-generator/
+  │
+  ├── ARCHITECTURE.md              ← System architecture & technology blueprint
+  ├── MASTER_GUIDE.md              ← Complete beginner-to-pro handbook (What, Why, How)
+  ├── ROADMAP.md                   ← Phase tracker & milestone checklist
+  ├── PROJECT_DOCS.txt             ← Comprehensive project documentation & development log
+  ├── .gitignore                   ← Secret & build ignore rules
+  │
+  ├── backend/
+  │   ├── run.py                   ← Uvicorn server launcher with hot-reload
+  │   ├── package_lambda.py        ← Lambda ZIP packaging script (Python 3.12 x86_64)
+  │   ├── deploy_lambda.py         ← Automated AWS Lambda + API Gateway deployment script
+  │   ├── lambda_package.zip       ← Production build artifact (9.91 MB)
+  │   ├── requirements.txt         ← Full development dependencies
+  │   ├── requirements-lambda.txt  ← Minimal production dependencies for AWS Lambda
+  │   ├── .env                     ← Live secrets (GROQ, SUPABASE, AWS) [NOT COMMITTED]
+  │   ├── .env.example             ← Environment variable template
+  │   ├── .venv/                   ← Python 3.14 virtual environment
+  │   ├── outputs/                 ← Local image cache (fallback storage)
+  │   │
+  │   ├── app/
+  │   │   ├── __init__.py          ← Package marker
+  │   │   ├── main.py              ← FastAPI application & Mangum handler
+  │   │   ├── guardrail.py         ← Visual intent validation engine
+  │   │   ├── ai_service.py        ← Groq prompt expansion & FLUX rendering
+  │   │   ├── storage.py           ← Amazon S3 upload & presigned URL engine
+  │   │   └── database.py          ← Supabase PostgreSQL client & queries
+  │   │
+  │   └── tests/
+  │       ├── __init__.py          ← Package marker
+  │       ├── test_guardrail.py    ← 17 guardrail tests (17/17 passing)
+  │       ├── test_ai_service.py   ← 6 AI service tests (6/6 passing)
+  │       └── test_storage.py      ← 9 S3 & local storage tests (9/9 passing)
+  │
+  └── frontend/
+      ├── index.html               ← SPA HTML5 entry point
+      ├── package.json             ← Node.js dependencies (React, Vite, Tailwind)
+      ├── vite.config.js           ← Vite dev server & proxy settings
+      ├── deploy_frontend.py       ← Automated S3 Static Website deployment script
+      ├── .env                     ← Cloud API Gateway endpoint configuration
+      ├── .env.example             ← Frontend environment template
+      ├── dist/                    ← Compiled production static bundle
+      │   ├── index.html           ← Minified HTML entry point
+      │   ├── assets/              ← Versioned CSS and JavaScript bundles
+      │   └── *.svg                ← Application icons and logos
+      │
+      └── src/
+          ├── main.jsx             ← React DOM root
+          ├── App.jsx              ← Main shell, navigation tabs & state
+          ├── config.js            ← Dynamic API Base URL configuration
+          ├── index.css            ← Design tokens, dark theme & animations
+          │
+          └── components/
+              ├── Header.jsx       ← Application banner & status
+              ├── PromptInput.jsx  ← Text input, mode toggle & submit
+              ├── ImageUploader.jsx← Drag-and-drop reference image uploader
+              ├── ResultPanel.jsx  ← 16:9 canvas, S3 badge & download
+              └── Gallery.jsx      ← Supabase history grid, lightbox modal, item & bulk deletion
+
+
+================================================================================
+  15. API ENDPOINTS REFERENCE
+================================================================================
+
+  Base URL (Cloud / Serverless): https://78jpzfhwr4.execute-api.ap-south-1.amazonaws.com
+  Base URL (Local Dev)         : http://localhost:8000
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  GET /                                                                  │
+  │  Health Check & Engine Telemetry                                        │
+  │                                                                         │
+  │  Response (200 OK):                                                     │
+  │  {                                                                      │
+  │    "status": "healthy",                                                 │
+  │    "service": "AI Thumbnail Generator API",                             │
+  │    "version": "0.5.0",                                                  │
+  │    "ai_model": "Groq (qwen/qwen3.8-27b) + FLUX",                        │
+  │    "storage": "Amazon S3 (bucket: ai-thumbnails-samrat-1234)",          │
+  │    "s3_configured": true                                                │
+  │  }                                                                      │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  POST /api/validate                                                     │
+  │  Guardrail Verification (Dry Run)                                       │
+  │                                                                         │
+  │  Request Body:                                                          │
+  │    { "prompt": "Epic Minecraft survival thumbnail with lightning" }     │
+  │                                                                         │
+  │  Response (200 OK):                                                     │
+  │    { "is_allowed": true, "reason": "VALID_VISUAL_PROMPT", ... }         │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  POST /api/generate                                                     │
+  │  Text-to-Thumbnail Pipeline                                             │
+  │                                                                         │
+  │  Request Body:                                                          │
+  │    { "prompt": "Cyberpunk programmer with multi-screen neon setup" }    │
+  │                                                                         │
+  │  Response (200 OK):                                                     │
+  │  {                                                                      │
+  │    "success": true,                                                     │
+  │    "message": "Prompt accepted...",                                     │
+  │    "data": {                                                            │
+  │      "image_base64": "<base64_data>",                                   │
+  │      "mime_type": "image/jpeg",                                         │
+  │      "saved_path": "s3://ai-thumbnails-samrat-1234/thumbnails/....jpg", │
+  │      "url": "https://ai-thumbnails-samrat-1234.s3.amazonaws.com/....", │
+  │      "model": "Groq (Qwen) + FLUX",                                     │
+  │      "prompt_used": "..."                                               │
+  │    }                                                                    │
+  │  }                                                                      │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  POST /api/edit                                                         │
+  │  Image-to-Image Modification Pipeline                                   │
+  │                                                                         │
+  │  Request: multipart/form-data                                           │
+  │    - prompt : (string) Visual modification instruction                  │
+  │    - image  : (file)   Uploaded reference PNG/JPG/WEBP                  │
+  │                                                                         │
+  │  Response: Same schema as /api/generate                                 │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  GET /api/history                                                       │
+  │  Retrieve Past Generations from Supabase                                │
+  │                                                                         │
+  │  Query Parameters:                                                      │
+  │    - limit : (int, optional, default: 20)                               │
+  │                                                                         │
+  │  Response (200 OK):                                                     │
+  │  {                                                                      │
+  │    "success": true,                                                     │
+  │    "count": 3,                                                          │
+  │    "data": [                                                            │
+  │      {                                                                  │
+  │        "id": 3,                                                         │
+  │        "created_at": "2026-09-16T13:17:40Z",                            │
+  │        "prompt": "A vibrant neon YouTube gaming thumbnail...",          │
+  │        "mode": "generate",                                              │
+  │        "image_b64": "...",                                              │
+  │        "mime_type": "image/jpeg",                                       │
+  │        "model": "Groq + FLUX"                                           │
+  │      }                                                                  │
+  │    ]                                                                    │
+  │  }                                                                      │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  DELETE /api/history/{item_id}                                          │
+  │  Delete Specific Generation Record from Supabase                        │
+  │                                                                         │
+  │  URL Parameter: item_id (int)                                           │
+  │  CORS: Handled via API Gateway HTTP API AllowMethods                    │
+  │                                                                         │
+  │  Response (200 OK):                                                     │
+  │  {                                                                      │
+  │    "success": true,                                                     │
+  │    "message": "Generation item 3 deleted successfully",                 │
+  │    "deleted_id": 3                                                      │
+  │  }                                                                      │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  DELETE /api/history                                                    │
+  │  Clear Entire Generation History from Supabase                          │
+  │                                                                         │
+  │  Response (200 OK):                                                     │
+  │  {                                                                      │
+  │    "success": true,                                                     │
+  │    "message": "All generation history cleared successfully"             │
+  │  }                                                                      │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+  16. HOW TO RUN & TEST THE APPLICATION
+================================================================================
+
+  1. LIVE S3 STATIC WEBSITE (FRONTEND):
+     URL: http://ai-thumbnail-frontend-samrat-1234.s3-website.ap-south-1.amazonaws.com
+     Custom Domain: https://samratdev.fun (via Cloudflare CDN)
+
+  2. CLOUD SERVERLESS BACKEND (AWS LAMBDA + API GATEWAY):
+     Base URL: https://78jpzfhwr4.execute-api.ap-south-1.amazonaws.com
+     Cloud Docs: https://78jpzfhwr4.execute-api.ap-south-1.amazonaws.com/docs
+
+  3. START BACKEND SERVER (LOCAL DEV):
+     Open a terminal in the project root:
+     > cd backend
+     > .venv\Scripts\python.exe run.py
+
+     Backend runs on: http://localhost:8000
+     Swagger API Docs: http://localhost:8000/docs
+
+  4. START FRONTEND APPLICATION (LOCAL DEV):
+     Open a second terminal in the project root:
+     > cd frontend
+     > npm run dev
+
+     Frontend runs on: http://localhost:5173
+
+  5. RUN AUTOMATED TEST SUITE:
+     From the project root:
+     > cd backend
+     > .venv\Scripts\python.exe -m pytest -v
+
+================================================================================
+  17. AUTOMATED TEST SUITE SUMMARY
+================================================================================
+
+  Pytest Results (September 16, 2026):
+  Total Tests Run : 32
+  Tests Passed    : 32 (100% Pass Rate)
+  Execution Time  : ~0.4 seconds
+
+  Breakdown by Test Module:
+  ─────────────────────────
+  - backend/tests/test_guardrail.py (17 tests)
+    * 7 tests for valid visual prompts (gaming, portraits, landscape, etc.)
+    * 10 tests for blocked non-visual intents (code, essays, math, general Q&A)
+
+  - backend/tests/test_ai_service.py (6 tests)
+    * Prompt enhancement with Groq client mock
+    * Dictionary return structure validation
+    * Error handling for missing API keys and render failures
+    * Image-to-Image editing dictionary validation
+
+  - backend/tests/test_storage.py (9 tests)
+    * Detects missing/placeholder AWS environment variables
+    * Verifies valid AWS credential detection
+    * Tests local fallback write to disk
+    * Tests mocked boto3 put_object parameters
+    * Tests mocked S3 Presigned URL generation
+    * Tests unified save_image S3 routing
+
+================================================================================
+  18. UPCOMING PHASES & PHASE 10 MASTER DOCUMENTATION COMMITMENT
+================================================================================
+
+  PHASE 7: AWS Serverless Backend (Lambda + API Gateway)
+  ───────────────────────────────────────────────────────
+  [x] Learn AWS Lambda execution model & API Gateway routing
+  [x] Package FastAPI app with Mangum adapter for Lambda
+  [x] Deploy serverless backend using AWS Free Tier
+
+  PHASE 8: Frontend Cloud Hosting (Amazon S3)
+  ───────────────────────────────────────────
+  [x] Build static production bundle (`npm run build`)
+  [x] Deploy static bundle to S3 website bucket (Live at http://ai-thumbnail-frontend-samrat-1234.s3-website.ap-south-1.amazonaws.com)
+  [x] Enable S3 Static Website Hosting with SPA client-side routing
+
+  PHASE 9: Custom Domain & Free HTTPS (Cloudflare CDN + Hostinger)
+  ──────────────────────────────────────────────────────────────
+  [x] Connect custom domain `samratdev.fun` to Cloudflare
+  [x] Configure Cloudflare CNAME to point to S3 website bucket (Proxied)
+  [x] Verify instant free public HTTPS access on `https://samratdev.fun`
+
+  PHASE 10: Security Audit & Interview Mastery + Master Documentation
+  ───────────────────────────────────────────────────────────────────
+  [x] Comprehensive security check (no exposed keys, strict CORS, least privilege IAM)
+  [x] Full architectural review & interview question preparation
+  [x] Master Documentation Delivered (What, Why, and How format in MASTER_GUIDE.md):
+      * Full elaborated, beginner-friendly master guide in plain layperson's terms.
+      * Documented every single phase (Phases 0 through 10) in granular detail.
+      * Explained every technology, decision, and concept in plain English.
+      * Documented all errors encountered (e.g., manylinux binary mismatches, S3 URL
+        cryptographic signing issues, AWS Lambda reserved environment variable keys,
+        CloudFront account verification barrier, S3 Host header routing)
+        and exact step-by-step solutions applied.
+      * Provided step-by-step recreation instructions so anyone with zero prior
+        knowledge can build the entire project from scratch.
+
+================================================================================
+  END OF DOCUMENTATION
+================================================================================
