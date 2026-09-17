@@ -18,7 +18,7 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -285,7 +285,8 @@ async def generate(request: PromptRequest):
     tags=["Generation"],
 )
 async def edit(
-    prompt: str,
+    request: Request,
+    prompt: str | None = Form(None, description="Visual modification instruction."),
     image: UploadFile = File(..., description="Reference image to modify (JPG, PNG, WEBP)."),
 ):
     """
@@ -293,6 +294,12 @@ async def edit(
 
     Upload an existing thumbnail or photo and describe the modifications you want.
     """
+    # Step 0: Resolve prompt from Form-data or Query Params
+    effective_prompt = (prompt or request.query_params.get("prompt") or "").strip()
+    if not effective_prompt:
+        raise HTTPException(status_code=400, detail="Modification prompt cannot be empty.")
+    prompt = effective_prompt
+
     # Step 1: Guardrail
     result = validate_prompt(prompt)
     if not result.is_allowed:

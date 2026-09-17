@@ -86,7 +86,7 @@ export default function App() {
         const formData = new FormData()
         formData.append('prompt', prompt.trim())
         formData.append('image', file)
-        response = await fetch(`${API_BASE_URL}/api/edit`, {
+        response = await fetch(`${API_BASE_URL}/api/edit?prompt=${encodeURIComponent(prompt.trim())}`, {
           method: 'POST',
           body: formData,
         })
