@@ -790,7 +790,7 @@ npm run build
 
 ## 👨‍💻 Author & Internship Acknowledgements
 
-- **Developer**: Suman (Samrat)
+- **Developer**: **Samrat Sengupta**
 - **Role**: Cloud & DevOps Engineering Intern
 - **Organization**: [**Workmates Core2Cloud**](https://workmatescore2cloud.com/)
 - **Live Demo**: [https://samratdev.fun](https://samratdev.fun)
